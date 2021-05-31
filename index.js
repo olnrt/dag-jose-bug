@@ -29,13 +29,13 @@ async function main () {
   console.info('DID:',did.id);
 
   // setup ipfs with dag-jose for signing and encryption
-  const dagJoseFormat = convert(dagJose)
+  console.info(dagJose.default)
+  const dagJoseFormat = convert(dagJose.default)
   // or (same result...)
   // const hasher = {
   //   [sha256.code]: sha256
   // }
   // const dagJoseFormat = legacy(dagJose, {hashes: hasher})
-  console.info(dagJose)
   console.info(dagJoseFormat);
   const ipfs = await IPFS.create({ ipld: { formats: [dagJoseFormat] } })
 
@@ -48,8 +48,11 @@ async function main () {
     'did:key:z6MkgHyS8dpuk4ZdjveNBf92zGhY4U7BsoKmBMTTxp2rQUvQ',
   ]);
   console.info('JWE:',jwe);
-  const cidE = ipfs.dag.put(jwe, { format: 'dag-jose', hashAlg: 'sha2-256' }).catch((err)=>console.log(err))
+  const cidE = await ipfs.dag.put(jwe, { format: 'dag-jose', hashAlg: 'sha2-256' }).catch((err)=>console.log(err))
   console.log(cidE)
+
+  const getJWE = await ipfs.dag.get(cidE)
+  console.info('get JWE',getJWE)
 }
 
 main()
