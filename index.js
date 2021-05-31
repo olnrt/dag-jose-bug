@@ -29,13 +29,12 @@ async function main () {
   console.info('DID:',did.id);
 
   // setup ipfs with dag-jose for signing and encryption
-  // const dagJoseFormat = convert(dagJose)
-  // const ipfs = await IPFS.create({ ipld: { formats: [dagJoseFormat] } })
-  // or
-  const hasher = {
-    [sha256.code]: sha256
-  }
-  const dagJoseFormat = legacy(dagJose, {hashes: hasher})
+  const dagJoseFormat = convert(dagJose)
+  // or (same result...)
+  // const hasher = {
+  //   [sha256.code]: sha256
+  // }
+  // const dagJoseFormat = legacy(dagJose, {hashes: hasher})
   console.info(dagJose)
   console.info(dagJoseFormat);
   const ipfs = await IPFS.create({ ipld: { formats: [dagJoseFormat] } })
