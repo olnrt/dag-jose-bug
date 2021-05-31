@@ -7,25 +7,41 @@ import uint8ArrayToString from 'uint8arrays/to-string.js';
 import dagJose from 'dag-jose';
 import { convert } from 'blockcodec-to-ipld-format'
 import { sha256 } from 'multiformats/hashes/sha2';
-//or https://github.com/ceramicnetwork/js-dag-jose
-// import multiformats from 'multiformats/basics.js'
 import legacy from 'multiformats/legacy'
 
 // DID
 import { DID } from 'dids'
 import { Ed25519Provider } from 'key-did-provider-ed25519'
 import KeyDidResolver from 'key-did-resolver'
-import { randomBytes } from '@stablelib/random'
 import { fromString } from 'uint8arrays'
 
-async function main () {
+import fs from 'fs'
 
-  const seed = fromString('4064a4f557bb7aaa0b7b9f52c1dfeaa82749ed36a7be44d3f3db39b32694b887', 'base16')
+// DIDs
+// encrypter
+// 4064a4f557bb7aaa0b7b9f52c1dfeaa82749ed36a7be44d3f3db39b32694b887 did:key:z6Mkr6KyLSAdNN8NNBBriYTuzMioufT7T4Kk6XaBKTg1jmqY
+// decoder
+// 650e4ec042b2c676cce1c4ea7ba0defdfefe39d3b12715dabbcc6b623d9ef8d8 did:key:z6MkmuPSwwq8MZTcLMk5uLN9oTMyEfJyN9aF7eCJo3ZZy7U2
+// a979fd55f4382ca7a4edf0e7539fda5341a6a0c0af0f608cdbfacdcb5028fa55 did:key:z6MkpXt3dqTbUu7KK9z1QVeuKazxwr52ZdT9LRViENmfpxrH
+// 5767c6d427fc3566bd482b321505af14c708f48b77d5e82d22fb08a2ccbd4baa did:key:z6MkgHyS8dpuk4ZdjveNBf92zGhY4U7BsoKmBMTTxp2rQUvQ
+
+// a039d7d252710efe7bd7503dbd8dddaee7395ffa4c7b469f756d7f8aa551b9b0 did:key:z6MkiecsBfENz1UDKhFsUQUtVbNk4J5Um3vtvnnDg2wTBvEL
+// 2e095c3eafbcfe1191cf1b35c6cd5ccc610583095f13e6f18be4c19822321c88 did:key:z6MkgCJiUb6GxUWd9QnP4TYsi6KgA5SyR6ghuPJj3pVpq21R
+// 4064a4f557bb7aaa0b7b9f52c1dfeaa82749ed36a7be44d3f3db39b32694b887 did:key:z6MkfDCZiMKpVmyzb7BT6PGAmhsbx4saBBYzdP84yfE3gDmG
+
+async function authenticate(pk) {
+  const seed = fromString(pk, 'base16')
   const did = new DID({
     provider: new Ed25519Provider(seed),
     resolver: { ...KeyDidResolver.default.getResolver() }
   })
   await did.authenticate();
+  return did;
+}
+
+async function main (data) {
+
+  const did = await authenticate('4064a4f557bb7aaa0b7b9f52c1dfeaa82749ed36a7be44d3f3db39b32694b887');
   console.info('DID:',did.id);
 
   // setup ipfs with dag-jose for signing and encryption
@@ -40,19 +56,49 @@ async function main () {
   const ipfs = await IPFS.create({ ipld: { formats: [dagJoseFormat] } })
 
   const jwe = await did.createDagJWE({
-    company: 'brdg',
-    content: 'big secret',
+    title: 'secret pdf',
+    content: data,
   },[
     'did:key:z6MkmuPSwwq8MZTcLMk5uLN9oTMyEfJyN9aF7eCJo3ZZy7U2',
     'did:key:z6MkpXt3dqTbUu7KK9z1QVeuKazxwr52ZdT9LRViENmfpxrH',
     'did:key:z6MkgHyS8dpuk4ZdjveNBf92zGhY4U7BsoKmBMTTxp2rQUvQ',
   ]);
   console.info('JWE:',jwe);
-  const cidE = await ipfs.dag.put(jwe, { format: 'dag-jose', hashAlg: 'sha2-256' }).catch((err)=>console.log(err))
+  const cidE = await ipfs.dag.put(jwe, { format: 'dag-jose', hashAlg: 'sha2-256' })
   console.log(cidE)
 
   const getJWE = await ipfs.dag.get(cidE)
   console.info('get JWE',getJWE)
+
+  // OK
+  const did1 = await authenticate('650e4ec042b2c676cce1c4ea7ba0defdfefe39d3b12715dabbcc6b623d9ef8d8');
+  console.info('DID1:',did1.id);
+  const cleartext1 = await did1.decryptDagJWE(jwe)
+  console.info('decrypt 1',cleartext1)
+
+  const did2 = await authenticate('a979fd55f4382ca7a4edf0e7539fda5341a6a0c0af0f608cdbfacdcb5028fa55');
+  console.info('DID2:',did2.id);
+  const cleartext2 = await did2.decryptDagJWE(jwe)
+  console.info('decrypt 2',cleartext2)
+
+  const did3 = await authenticate('5767c6d427fc3566bd482b321505af14c708f48b77d5e82d22fb08a2ccbd4baa');
+  console.info('DID3:',did3.id);
+  const cleartext3 = await did3.decryptDagJWE(jwe)
+  console.info('decrypt 3',cleartext3)
+
+  fs.writeFileSync('./paper-out.pdf',cleartext3.content)
+
+  // NOT OK
+  const did4 = await authenticate('a039d7d252710efe7bd7503dbd8dddaee7395ffa4c7b469f756d7f8aa551b9b0');
+  console.info('DID4:',did4.id);
+  const cleartext4 = await did4.decryptDagJWE(jwe).catch((err) => console.log(err))
+  console.info('decrypt 4',cleartext4)
+
 }
 
-main()
+// read file
+fs.readFile('./paper-in.pdf', (err, data) => {
+  if (err) throw err;
+  main(data)
+})
+
