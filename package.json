@@ -1,0 +1,22 @@
+{
+  "name": "dag-jose-bug",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "brdg",
+  "license": "ISC",
+  "dependencies": {
+    "blockcodec-to-ipld-format": "^1.0.0",
+    "dag-jose": "^0.3.0",
+    "dids": "^2.1.0",
+    "ipfs-core": "~0.5.2",
+    "key-did-provider-ed25519": "^1.1.0",
+    "key-did-resolver": "^1.2.0",
+    "multiformats": "~4.6.1",
+    "uint8arrays": "^2.1.5"
+  }
+}
